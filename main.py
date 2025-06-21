@@ -6,7 +6,7 @@ from gui import MainWindow
 from simulator_factory import create_simulator, get_supported_architectures
 
 # Global constants for default initial configuration
-DEFAULT_N_DIM, DEFAULT_M_DIM, DEFAULT_P_DIM = 16, 16, 16
+DEFAULT_N_DIM, DEFAULT_M_DIM, DEFAULT_P_DIM = 8, 8, 8
 DEFAULT_TILE_TMM0_M_ROWS = 8  # M-dim for tmm0
 DEFAULT_TILE_TMM0_K_COLS = 8  # K-dim for tmm0
 DEFAULT_TILE_TMM1_K_ROWS = 8  # K-dim for tmm1 (must match TMM0_K_COLS)
