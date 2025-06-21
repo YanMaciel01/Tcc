@@ -119,6 +119,7 @@ class MainWindow(QMainWindow):
 
 
     def _rebuild_matrix_displays_and_labels(self, current_config: SimulatorConfig): # No changes
+        
         layout = self.matrix_area_layout
         while layout.count():
             item = layout.takeAt(0); widget = item.widget()
@@ -130,6 +131,7 @@ class MainWindow(QMainWindow):
                         sub_item = sub_layout.takeAt(0); sub_widget = sub_item.widget()
                         if sub_widget: sub_widget.deleteLater()
                     sub_layout.deleteLater()
+
         self.register_widgets.clear()
         self.matrix_A_widget = MatrixDisplayWidget(current_config.N, current_config.M, "Matrix A (Source)")
         self.matrix_B_widget = MatrixDisplayWidget(current_config.M, current_config.P, "Matrix B (Source)")
@@ -138,20 +140,28 @@ class MainWindow(QMainWindow):
         self._add_matrix_widget_to_layout(self.matrix_B_widget, 0, 1)
         self._add_matrix_widget_to_layout(self.matrix_C_widget, 0, 2)
         register_infos = self.simulator.get_register_display_info()
+        
         for i, reg_info in enumerate(register_infos):
             reg_id = reg_info['id']; reg_title = reg_info['title']; rows, cols = 1, 1
+            
             if 'rows_attr' in reg_info and 'cols_attr' in reg_info:
                 rows = getattr(current_config, reg_info['rows_attr'], 1)
                 cols = getattr(current_config, reg_info['cols_attr'], 1)
+            
             elif 'rows' in reg_info and 'cols' in reg_info:
                 rows = reg_info['rows']; cols = reg_info['cols']
+            
             else: QMessageBox.warning(self, "Register Display Error", f"Register '{reg_id}' incomplete.")
+            
             rows = max(1, rows); cols = max(1, cols)
             widget = MatrixDisplayWidget(rows, cols, reg_title)
             self.register_widgets[reg_id] = widget
             self._add_matrix_widget_to_layout(widget, 1, i)
+        
         for i in range(2): self.matrix_area_layout.setRowStretch(i, 1)
+        
         num_display_cols = max(3, len(register_infos))
+        
         for i in range(num_display_cols): self.matrix_area_layout.setColumnStretch(i, 1)
 
     def _add_matrix_widget_to_layout(self, matrix_widget: MatrixDisplayWidget, r, c): # No changes
@@ -160,13 +170,17 @@ class MainWindow(QMainWindow):
 
     def _create_param_input_pair_widget(self, label_text, default_value, label_width=120, input_width=50): # No changes
         container_widget = QWidget()
+        
         layout = QHBoxLayout(container_widget)
         layout.setContentsMargins(0,0,0,0) 
         layout.setSpacing(5)
+        
         label = QLabel(label_text); label.setFixedWidth(label_width)
+        
         line_edit = QLineEdit(str(default_value))
         line_edit.setValidator(QIntValidator(1, 4096)); line_edit.setFixedWidth(input_width)
         layout.addWidget(label); layout.addWidget(line_edit); layout.addStretch()
+        
         return container_widget, line_edit
 
 
@@ -197,6 +211,7 @@ class MainWindow(QMainWindow):
             dtype_widget_container = QWidget()
             dtype_layout_h = QHBoxLayout(dtype_widget_container)
             dtype_layout_h.setContentsMargins(0,0,0,0); dtype_layout_h.setSpacing(5)
+            
             dtype_label = QLabel("Data Type:"); dtype_label.setFixedWidth(100)
             dtype_combo = QComboBox(); dtype_combo.addItems(["int8", "bf16"])
             dtype_combo.setCurrentText(self.initial_sim_config_dict["input_dtype_str"])
@@ -217,6 +232,11 @@ class MainWindow(QMainWindow):
                 t1n_w, t1n_i = self._create_param_input_pair_widget("tmm1 Cols (N el.):", self.initial_sim_config_dict["tile_tmm1_n_cols"], tile_label_w)
                 tab_inputs['tmm1_k'] = t1k_i; tab_inputs['tmm1_n'] = t1n_i
                 arch_tab_layout.addWidget(t1k_w, 3, 0); arch_tab_layout.addWidget(t1n_w, 3, 1)
+
+            elif arch_name == "SME":
+                print(f"  Adding SME parameters to tab '{arch_name}'")
+                dtype_combo.setEnabled(False)  # SME only supports int8
+                
             elif arch_name == "RISC-V Ext":
                 print(f"  Adding RISC-V Ext parameters to tab '{arch_name}'") # DEBUG
                 l_widget, l_input = self._create_param_input_pair_widget("L (Elems/vector reg):", self.initial_sim_config_dict["tile_tmm0_m_rows"], tile_label_w + 35, 50) 
@@ -252,26 +272,31 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addSpacing(10)
         self.asm_op_header_label = self._create_sidebar_header(f"{self.simulator.get_architecture_name()} Assembly / Operation:")
         self.sidebar_layout.addWidget(self.asm_op_header_label)
+        
         self.asm_op_label = QLabel("...")
         self.asm_op_label.setWordWrap(True); self.asm_op_label.setStyleSheet("font-family: monospace;")
         self.sidebar_layout.addWidget(self.asm_op_label)
         self.sidebar_layout.addSpacing(10)
         self.sidebar_layout.addWidget(self._create_sidebar_header("Computational Intensity Metrics:"))
+        
         self.metrics_mac_ops_label = QLabel("MAC Operations: 0")
         self.metrics_elements_loaded_label = QLabel("Elements Loaded: 0")
         self.metrics_elements_stored_label = QLabel("Elements Stored: 0")
+       
         self.metrics_ci_label = QLabel("Computational Intensity (MACs/Elem IO): 0.00")
         self.sidebar_layout.addWidget(self.metrics_mac_ops_label)
         self.sidebar_layout.addWidget(self.metrics_elements_loaded_label)
         self.sidebar_layout.addWidget(self.metrics_elements_stored_label)
         self.sidebar_layout.addWidget(self.metrics_ci_label)
         self.sidebar_layout.addSpacing(10)
+        
         self.step_info_label = QLabel("Step: 0 / 0")
         self.sidebar_layout.addWidget(self.step_info_label)
         self.sidebar_layout.addSpacing(20)
         controls_widget = QWidget()
         self.controls_layout = QHBoxLayout(controls_widget)
         self.controls_layout.setContentsMargins(0,0,0,0)
+        
         self.prev_button = QPushButton("Previous (Left Arrow)")
         self.next_button = QPushButton("Next (Right Arrow)")
         self.controls_layout.addWidget(self.prev_button); self.controls_layout.addWidget(self.next_button)
@@ -295,28 +320,56 @@ class MainWindow(QMainWindow):
         try:
             current_tab_arch_name = self.tab_widget.tabText(self.tab_widget.currentIndex())
             inputs = self.arch_tabs_widgets[current_tab_arch_name]
+            
             N = int(inputs['N'].text()); M = int(inputs['M'].text()); P = int(inputs['P'].text())
+            
             dtype_str = inputs['dtype'].currentText()
             tile_tmm0_m_rows, tile_tmm0_k_cols, tile_tmm1_k_rows, tile_tmm1_n_cols = 1,1,1,1 
+            
             if current_tab_arch_name == "AMX":
                 tile_tmm0_m_rows = int(inputs['tmm0_m'].text()); tile_tmm0_k_cols = int(inputs['tmm0_k'].text())
                 tile_tmm1_k_rows = int(inputs['tmm1_k'].text()); tile_tmm1_n_cols = int(inputs['tmm1_n'].text())
+            
             elif current_tab_arch_name == "RISC-V Ext":
                 tile_tmm0_m_rows = int(inputs['L'].text()) 
+            
             if not (N > 0 and M > 0 and P > 0 and tile_tmm0_m_rows > 0 and \
                     tile_tmm0_k_cols > 0 and tile_tmm1_k_rows > 0 and tile_tmm1_n_cols > 0):
                 raise ValueError("Dimensions and relevant tile/L sizes must be positive.")
-            new_config = SimulatorConfig(N=N, M=M, P=P,tile_tmm0_m_rows=tile_tmm0_m_rows, 
-                tile_tmm0_k_cols=tile_tmm0_k_cols,tile_tmm1_k_rows=tile_tmm1_k_rows, 
-                tile_tmm1_n_cols=tile_tmm1_n_cols,dtype_str=dtype_str)
+            
+            # Show warning if dimensions are not compatible with SME
+            if current_tab_arch_name == "SME" and (N > 8 or M > 8 or P > 8):
+                N = 8
+                M = 8
+                P = 8
+                QMessageBox.warning(self, "Configuration Warning",
+                                    "Matrix dimensions (N, M, P) should be 8 or lower for SME simulation\n"
+                                    "For this simulator, the registers have an 128bits size and the ZA accumulator 512bits size.\n"
+                                    "Setting N, M, P to 8 for compatibility with SME architecture.")
+            
+            new_config = SimulatorConfig(
+                N=N, 
+                M=M, 
+                P=P,
+                tile_tmm0_m_rows=tile_tmm0_m_rows, 
+                tile_tmm0_k_cols=tile_tmm0_k_cols,
+                tile_tmm1_k_rows=tile_tmm1_k_rows, 
+                tile_tmm1_n_cols=tile_tmm1_n_cols,
+                dtype_str=dtype_str
+            )
+
             self.simulator = create_simulator(current_tab_arch_name, new_config)
             self.simulator.initialize_simulation()
             init_warnings = self.simulator.get_initialization_warnings()
+            
             if init_warnings: QMessageBox.warning(self, f"{current_tab_arch_name} Config Warnings", "\n".join(init_warnings))
             self._rebuild_matrix_displays_and_labels(new_config)
             self.setWindowTitle(f"{self.simulator.get_architecture_name()} Simulator")
+            
             if hasattr(self, 'asm_op_header_label'): self.asm_op_header_label.setText(f"{self.simulator.get_architecture_name()} Assembly / Operation:")
+                
             self.update_gui()
+
         except ValueError as e: QMessageBox.critical(self, "Configuration Error", f"Invalid input or configuration: {str(e)}")
         except Exception as e: QMessageBox.critical(self, "Error", f"Failed to apply config: {str(e)}")
 
@@ -328,19 +381,23 @@ class MainWindow(QMainWindow):
 
     def update_gui(self): # No changes
         if not hasattr(self, 'matrix_A_widget'): return
+        
         sim_state: SimulatorState = self.simulator.get_current_gui_state()
         self.setWindowTitle(sim_state.window_title_info) 
+        
         current_dtype_str = self.simulator.config.dtype_str
         self.matrix_A_widget.update_matrix(sim_state.A_data, sim_state.A_colors, dtype_str=current_dtype_str)
         self.matrix_B_widget.update_matrix(sim_state.B_data, sim_state.B_colors, dtype_str=current_dtype_str)
         self.matrix_C_widget.update_matrix(sim_state.C_data, sim_state.C_colors, is_acc_matrix=True, dtype_str=current_dtype_str)
         register_infos = self.simulator.get_register_display_info()
+        
         for reg_info in register_infos:
             reg_id = reg_info['id']; widget = self.register_widgets.get(reg_id)
             if widget:
                 data = sim_state.register_data.get(reg_id); colors = sim_state.register_colors.get(reg_id)
                 is_acc = reg_info.get('is_accumulator', False)
                 widget.update_matrix(data, colors, is_acc_matrix=is_acc, dtype_str=current_dtype_str)
+        
         if hasattr(self, 'mode_label'): 
             self.mode_label.setText(sim_state.current_mode_text)
             self.asm_op_label.setText(sim_state.current_op_desc)

@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any, Dict, Union, List
 
 class SimulatorConfig:
-    def __init__(self, N: int = 16, M: int = 16, P: int = 16, 
+    def __init__(self, N: int = 8, M: int = 8, P: int = 8, 
                  tile_tmm0_m_rows: int = 8, tile_tmm0_k_cols: int = 8, 
                  tile_tmm1_k_rows: int = 8, tile_tmm1_n_cols: int = 8,
                  dtype_str: str = "int8"):
