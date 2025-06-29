@@ -188,14 +188,14 @@ class SMESimulator(MatrixAcceleratorSimulator):
         return [
             {
                 "id": "reg0",
-                "title": "Reg0 (A Vector)",
+                "title": "Z0.B",
                 "rows": self.config.N,
                 "cols": 1,
                 "is_accumulator": False
             },
             {
                 "id": "reg1",
-                "title": "Reg1 (B Vector)",
+                "title": "Z1.B",
                 "rows": 1,
                 "cols": self.config.P,
                 "is_accumulator": False

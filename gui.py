@@ -15,7 +15,7 @@ QT_CMAP_COLORS = [
     QColor("yellow"), QColor("lightcoral"), QColor("coral"), QColor("palegreen")
 ]
 
-class MatrixDisplayWidget(QTableWidget): # No changes
+class MatrixDisplayWidget(QTableWidget):
     def __init__(self, rows, cols, title="Matrix", parent=None):
         super().__init__(rows, cols, parent)
         self.title_label = QLabel(title)
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.update_gui()
 
 
-    def _rebuild_matrix_displays_and_labels(self, current_config: SimulatorConfig): # No changes
+    def _rebuild_matrix_displays_and_labels(self, current_config: SimulatorConfig):
         
         layout = self.matrix_area_layout
         while layout.count():
@@ -164,11 +164,11 @@ class MainWindow(QMainWindow):
         
         for i in range(num_display_cols): self.matrix_area_layout.setColumnStretch(i, 1)
 
-    def _add_matrix_widget_to_layout(self, matrix_widget: MatrixDisplayWidget, r, c): # No changes
+    def _add_matrix_widget_to_layout(self, matrix_widget: MatrixDisplayWidget, r, c):
         container = QVBoxLayout(); container.addWidget(matrix_widget.title_label)
         container.addWidget(matrix_widget); self.matrix_area_layout.addLayout(container, r, c)
 
-    def _create_param_input_pair_widget(self, label_text, default_value, label_width=120, input_width=50): # No changes
+    def _create_param_input_pair_widget(self, label_text, default_value, label_width=120, input_width=50):
         container_widget = QWidget()
         
         layout = QHBoxLayout(container_widget)
@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
         default_tab_idx = 0
 
         for idx, arch_name in enumerate(supported_architectures):
-            print(f"--- Creating Tab for: {arch_name} ---") # DEBUG
+            print(f"--- Creating Tab for: {arch_name} ---")
             arch_tab_content_widget = QWidget() 
             arch_tab_layout = QGridLayout(arch_tab_content_widget)
             arch_tab_layout.setVerticalSpacing(8) 
@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
             dtype_layout_h.setContentsMargins(0,0,0,0); dtype_layout_h.setSpacing(5)
             
             dtype_label = QLabel("Data Type:"); dtype_label.setFixedWidth(100)
-            dtype_combo = QComboBox(); dtype_combo.addItems(["int8", "bf16"])
+            dtype_combo = QComboBox(); dtype_combo.addItems(["int8", "bf16", "fp32"])
             dtype_combo.setCurrentText(self.initial_sim_config_dict["input_dtype_str"])
             dtype_combo.setFixedWidth(70)
             tab_inputs['dtype'] = dtype_combo
@@ -238,11 +238,30 @@ class MainWindow(QMainWindow):
                 dtype_combo.setEnabled(False)
                 
             elif arch_name == "RISC-V Ext":
-                print(f"  Adding RISC-V Ext parameters to tab '{arch_name}'") 
-                l_widget, l_input = self._create_param_input_pair_widget("L (Elems/vector reg):", self.initial_sim_config_dict["tile_tmm0_m_rows"], tile_label_w + 35, 50) 
+                print(f"  Adding RISC-V Ext parameters to tab '{arch_name}'")
+                default_L = self.initial_sim_config_dict["tile_tmm0_m_rows"]
+
+                # Campo de entrada de L
+                l_widget, l_input = self._create_param_input_pair_widget("L (Elems/vector reg):", default_L, tile_label_w + 35, 50)
                 tab_inputs['L'] = l_input
-                arch_tab_layout.addWidget(l_widget, 2, 0, 1, 2) 
-                            
+                arch_tab_layout.addWidget(l_widget, 2, 0, 1, 2)
+
+                # Label para exibir λ = √L
+                lambda_label = QLabel()
+                lambda_label.setText(f"λ = √L = {int(np.floor(default_L**0.5)) if default_L > 0 else '?'}")
+                arch_tab_layout.addWidget(lambda_label, 3, 0, 1, 2)
+
+                # Guardar referência
+                tab_inputs['lambda_label'] = lambda_label
+
+            elif arch_name == "RISC-V Ext 2":
+                print(f"  Adding RISC-V 2 Ext parameters to tab '{arch_name}'")
+                default_L = 4
+                l_widget, l_input = self._create_param_input_pair_widget("L (Elems/vector reg):", default_L, tile_label_w + 35, 50)
+                tab_inputs['L'] = l_input
+                arch_tab_layout.addWidget(l_widget, 2, 0, 1, 2)
+                dtype_combo.setEnabled(False)
+                                        
             arch_tab_layout.setRowStretch(arch_tab_layout.rowCount(), 1) 
             
             self.tab_widget.addTab(arch_tab_content_widget, arch_name)
@@ -315,6 +334,11 @@ class MainWindow(QMainWindow):
             self.next_button.clicked.connect(self.on_next_step)
             self.prev_button.clicked.connect(self.on_prev_step)
 
+    def _update_lambda_label(self, l_val: int, lambda_label: QLabel):
+        try:
+            lambda_label.setText(f"λ = √L = {int(np.floor(l_val ** 0.5))}")
+        except Exception:
+            lambda_label.setText("λ = √L = ?")
 
     def on_apply_config(self):
         try:
@@ -330,8 +354,17 @@ class MainWindow(QMainWindow):
                 tile_tmm0_m_rows = int(inputs['tmm0_m'].text()); tile_tmm0_k_cols = int(inputs['tmm0_k'].text())
                 tile_tmm1_k_rows = int(inputs['tmm1_k'].text()); tile_tmm1_n_cols = int(inputs['tmm1_n'].text())
             
-            elif current_tab_arch_name == "RISC-V Ext":
-                tile_tmm0_m_rows = int(inputs['L'].text()) 
+            elif current_tab_arch_name == "RISC-V Ext" or current_tab_arch_name == "RISC-V Ext 2":
+                tile_tmm0_m_rows = int(inputs['L'].text())
+                
+                # Atualizar label lambda após aplicar
+                lambda_label = inputs.get('lambda_label')
+                if lambda_label:
+                    try:
+                        l_val = int(inputs['L'].text())
+                        lambda_label.setText(f"λ = √L = {int(np.floor(l_val ** 0.5))}")
+                    except Exception:
+                        lambda_label.setText("λ = √L = ?")
             
             if not (N > 0 and M > 0 and P > 0 and tile_tmm0_m_rows > 0 and \
                     tile_tmm0_k_cols > 0 and tile_tmm1_k_rows > 0 and tile_tmm1_n_cols > 0):
@@ -342,10 +375,18 @@ class MainWindow(QMainWindow):
                 N = 8
                 M = 8
                 P = 8
-                QMessageBox.warning(self, "Configuration Warning",
-                                    "Matrix dimensions (N, M, P) should be 8 or lower for SME simulation\n"
-                                    "For this simulator, the registers have an 128bits size and the ZA accumulator 512bits size.\n"
+                inputs['N'].setText(str(N))
+                inputs['M'].setText(str(M))
+                inputs['P'].setText(str(P))
+                QMessageBox.critical(self, "Configuration Warning",
+                                    "Matrix dimensions (N, M, P) should be 8 or lower for SME simulation. For this simulator, the registers have an 128bits size and the ZA accumulator 512bits size.\n"
                                     "Setting N, M, P to 8 for compatibility with SME architecture.")
+            
+            if current_tab_arch_name == "RISC-V Ext 2":
+                inputs['dtype'].setCurrentText("fp32")
+
+            print(f"Applying config: N={N}, M={M}, P={P}, "
+                  f"L={tile_tmm0_m_rows}")
             
             new_config = SimulatorConfig(
                 N=N, 
@@ -409,7 +450,7 @@ class MainWindow(QMainWindow):
             self.prev_button.setEnabled(self.simulator.current_step_index > -1)
             self.next_button.setEnabled(self.simulator.current_step_index < self.simulator.total_steps)
 
-    def keyPressEvent(self, event): # No changes
+    def keyPressEvent(self, event):
         if event.key() == Qt.Key_Right:
             if hasattr(self, 'next_button') and self.next_button.isEnabled(): self.on_next_step()
         elif event.key() == Qt.Key_Left:

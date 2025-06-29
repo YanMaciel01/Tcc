@@ -23,6 +23,8 @@ class SimulatorConfig:
             self.input_dtype, self.acc_dtype = np.int8, np.int32
         elif self.dtype_str == "bf16":
             self.input_dtype, self.acc_dtype = np.float16, np.float32 
+        elif self.dtype_str == "fp32":
+            self.input_dtype, self.acc_dtype = np.float32, np.float32 
         else:
             raise ValueError(f"Unsupported dtype_str: {self.dtype_str}")
         
@@ -33,7 +35,7 @@ class SimulationStep:
         self.mode = mode 
         self.params = params 
 
-class SimulatorState: # No changes
+class SimulatorState:
     def __init__(self):
         self.A_data, self.B_data, self.C_data = None, None, None
         self.register_data: Dict[str, Union[np.ndarray, None]] = { 
@@ -102,7 +104,7 @@ class MatrixAcceleratorSimulator(ABC):
     def get_initialization_warnings(self) -> List[str]:
         return []
 
-    def _clear_runtime_state(self): # No changes
+    def _clear_runtime_state(self):
         if self.C_result is not None: self.C_result.fill(0)
         for reg_id in self.registers:
             if self.registers[reg_id] is not None:
@@ -111,7 +113,7 @@ class MatrixAcceleratorSimulator(ABC):
         self.elements_loaded = 0
         self.elements_stored = 0
 
-    def step_forward(self) -> bool: # No changes
+    def step_forward(self) -> bool:
         if self.current_step_index < self.total_steps: 
             self.current_step_index += 1
             if self.current_step_index < self.total_steps: 
@@ -119,7 +121,7 @@ class MatrixAcceleratorSimulator(ABC):
             return True
         return False 
 
-    def step_backward(self) -> bool: # No changes
+    def step_backward(self) -> bool:
         if self.current_step_index > -1:
             target_idx = self.current_step_index - 1
             self._clear_runtime_state() 
@@ -130,7 +132,7 @@ class MatrixAcceleratorSimulator(ABC):
             return True
         return False 
 
-    def get_current_gui_state(self) -> SimulatorState: # No changes
+    def get_current_gui_state(self) -> SimulatorState:
         state = SimulatorState()
         state.A_data = self.A_orig.copy() if self.A_orig is not None else None
         state.B_data = self.B_orig.copy() if self.B_orig is not None else None

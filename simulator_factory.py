@@ -2,6 +2,7 @@ from simulator_base import MatrixAcceleratorSimulator, SimulatorConfig
 from amx_simulator import AMXSimulator
 from riscv_extension_simulator import RISCVExtensionSimulator
 from sme_simulator import SMESimulator
+from riscv_extension2_simulator import RISCVExtensionSimulator2
 # from sme_simulator import SMESimulator
 
 
@@ -9,7 +10,7 @@ SUPPORTED_ARCHITECTURES = {
     "AMX": AMXSimulator,
     "RISC-V Ext": RISCVExtensionSimulator,
     "SME": SMESimulator,
-    # "SME": SMESimulator,
+    "RISC-V Ext 2": RISCVExtensionSimulator2,
 }
 
 def create_simulator(architecture_name: str, config: SimulatorConfig) -> MatrixAcceleratorSimulator:
