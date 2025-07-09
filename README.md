@@ -27,14 +27,31 @@ O simulador é focado em ensino e experimentação, oferecendo uma interface gr�
 ---
 
 ## 📦 Estrutura do Projeto
-├── main.py # Ponto de entrada da aplicação
-├── gui.py # Interface gráfica com PyQt5
-├── simulator_base.py # Base abstrata para todas as arquiteturas
-├── simulator_factory.py # Fábrica de simuladores
-├── amx_simulator.py # Implementação da arquitetura AMX
-├── sme_simulator.py # Implementação da arquitetura SME (ARM)
-├── riscv_extension_simulator.py # Extensão RISC-V baseada em blocos lambda
-├── riscv_extension2_simulator.py # Extensão RISC-V com registradores Lx1 e acumulador LxL
+📁 Projeto
+- `main.py`  
+  Ponto de entrada da aplicação
+
+- `gui.py`  
+  Interface gráfica construída com PyQt5
+
+- `simulator_base.py`  
+  Define a base abstrata para simuladores de arquiteturas
+
+- `simulator_factory.py`  
+  Fábrica de simuladores baseada no nome da arquitetura
+
+- `amx_simulator.py`  
+  Implementação da arquitetura **AMX** (Apple)
+
+- `sme_simulator.py`  
+  Implementação da arquitetura **SME** (ARM)
+
+- `riscv_extension_simulator.py`  
+  Implementação de uma extensão **RISC-V** com blocos `λ x λ` (lambda)
+
+- `riscv_extension2_simulator.py`  
+  Variante da extensão **RISC-V** com registradores `L x 1`, `1 x L` e acumulador `L x L`
+
 
 ## 🧪 Requisitos
 
