@@ -1,58 +1,54 @@
 import sys
-import argparse
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from simulator_base import SimulatorConfig
-from amx_simulator import AMXSimulator 
 from gui import MainWindow
+from simulator_factory import create_simulator, get_supported_architectures
 
-# Global constants (can be part of config or args)
-DEFAULT_N_DIM, DEFAULT_M_DIM, DEFAULT_P_DIM = 16, 16, 16 
-DEFAULT_TILE_H, DEFAULT_TILE_W = 8, 8
+# Global constants for default initial configuration
+DEFAULT_N_DIM, DEFAULT_M_DIM, DEFAULT_P_DIM = 8, 8, 8
+DEFAULT_TILE_TMM0_M_ROWS = 8  # M-dim for tmm0
+DEFAULT_TILE_TMM0_K_COLS = 8  # K-dim for tmm0
+DEFAULT_TILE_TMM1_K_ROWS = 8  # K-dim for tmm1 (must match TMM0_K_COLS)
+DEFAULT_TILE_TMM1_N_COLS = 8  # N-dim for tmm1
 DEFAULT_DTYPE = "int8"
+DEFAULT_ARCH = "AMX" 
 
 def main():
-    parser = argparse.ArgumentParser(description="Matrix Accelerator Simulator")
-    parser.add_argument("--tile_h", type=int, default=DEFAULT_TILE_H, help="Default height of logical Reg0/Reg2_Acc tiles.")
-    parser.add_argument("--tile_w", type=int, default=DEFAULT_TILE_W, help="Default width of logical Reg0/Reg2_Acc tiles, common K for Reg1.")
-    parser.add_argument("--dtype", type=str, default=DEFAULT_DTYPE, choices=["int8", "bf16"], help="Default data type.")
-    parser.add_argument("--N", type=int, default=DEFAULT_N_DIM, help="Default N dimension of matrix A (NxM).")
-    parser.add_argument("--M", type=int, default=DEFAULT_M_DIM, help="Default M dimension of matrix A, B (NxM, MxP).")
-    parser.add_argument("--P", type=int, default=DEFAULT_P_DIM, help="Default P dimension of matrix B (MxP).")
-    
-    args = parser.parse_args()
-
-    # Create initial simulator configuration from defaults/args
     initial_config = SimulatorConfig(
-        N=args.N, M=args.M, P=args.P,
-        tile_h=args.tile_h, 
-        tile_w=args.tile_w, 
-        dtype_str=args.dtype
+        N=DEFAULT_N_DIM, M=DEFAULT_M_DIM, P=DEFAULT_P_DIM,
+        tile_tmm0_m_rows=DEFAULT_TILE_TMM0_M_ROWS,
+        tile_tmm0_k_cols=DEFAULT_TILE_TMM0_K_COLS,
+        tile_tmm1_k_rows=DEFAULT_TILE_TMM1_K_ROWS,
+        tile_tmm1_n_cols=DEFAULT_TILE_TMM1_N_COLS,
+        dtype_str=DEFAULT_DTYPE
     )
-    
-    # Instantiate the initial simulator
-    # For now, directly AMX. Could be a factory if multiple architectures.
-    initial_simulator = AMXSimulator(initial_config)
-    
+
+    initial_simulator = None
     try:
+        initial_simulator = create_simulator(DEFAULT_ARCH, initial_config)
         initial_simulator.initialize_simulation()
+
+        init_warnings = initial_simulator.get_initialization_warnings()
+        if init_warnings:
+            if not QApplication.instance(): 
+                _app = QApplication(sys.argv)
+            QMessageBox.warning(None, "Initial Configuration Warnings", "\n".join(init_warnings))
+
     except ValueError as e:
-        print(f"Error initializing simulator with default/CLI config: {e}")
-        # Optionally, show a Qt message box here or just exit
-        # For GUI, it's better to let GUI handle errors if possible
-        # but initial setup errors might need CLI feedback.
-        QApplication.instance() # Ensure QApplication exists for QMessageBox
-        if not QApplication.instance(): # If no instance, create one temporarily
+        print(f"Error initializing simulator with default config: {e}")
+        if not QApplication.instance():
             _app = QApplication(sys.argv)
-            QMessageBox.critical(None, "Initialization Error", f"Failed to initialize simulator: {e}")
-            sys.exit(1)
-        else:
-             QMessageBox.critical(None, "Initialization Error", f"Failed to initialize simulator: {e}")
-             sys.exit(1)
+        QMessageBox.critical(None, "Initialization Error", f"Failed to initialize simulator: {e}")
+        sys.exit(1)
+    except Exception as e: 
+        print(f"Unexpected error during initial simulator setup: {e}")
+        if not QApplication.instance():
+            _app = QApplication(sys.argv)
+        QMessageBox.critical(None, "Fatal Error", f"An unexpected error occurred: {e}")
+        sys.exit(1)
 
-
-    app = QApplication(sys.argv)
-    # Pass the fully configured and initialized simulator to the MainWindow
+    app = QApplication.instance() or QApplication(sys.argv) 
     main_window = MainWindow(initial_simulator)
     main_window.show()
     sys.exit(app.exec_())
